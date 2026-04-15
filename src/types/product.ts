@@ -1,13 +1,21 @@
+// Matches the DummyJSON /products response shape
 export interface Product {
-  id: string
-  name: string
+  id: number
+  title: string
   description: string
   price: number
-  category: 'electronics' | 'clothing' | 'home' | 'sports' | 'books'
+  discountPercentage: number
   rating: number
-  reviewCount: number
-  inStock: boolean
-  imageUrl: string
-  tags: string[]
-  createdAt: string
+  stock: number
+  brand: string
+  category: string
+  thumbnail: string
+  images: string[]
+}
+
+export interface ProductsResponse {
+  products: Product[]
+  total: number
+  skip: number
+  limit: number
 }

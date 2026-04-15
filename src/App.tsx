@@ -1,63 +1,102 @@
-import { products } from './data/products'
-
-/**
- * INTERVIEW CHALLENGE — Product Dashboard
- * =========================================
- *
- * You have 30 minutes. AI tools are encouraged.
- *
- * TASK 1 — Product Grid  (required)
- *   Display the products below in a responsive grid.
- *   Each card should show: image, name, price, rating, category, and stock status.
- *
- * TASK 2 — Search & Filter  (required)
- *   - A search input that filters products by name (real-time, no submit button).
- *   - A category dropdown/pill filter.
- *   - An "In stock only" toggle.
- *
- * TASK 3 — Sort  (required)
- *   Let users sort by: price (low→high, high→low) and rating (high→low).
- *
- * TASK 4 — Polish & Extras  (if time allows)
- *   Pick ONE or more:
- *   - Empty state when no products match.
- *   - Keyboard-accessible filter controls (a11y).
- *   - A product detail modal/drawer on card click.
- *   - URL query-param sync so filters survive a page refresh.
- *   - Animated transitions (card enter/exit).
- *   - Dark mode toggle.
- *
- * GROUND RULES
- *   - You may install any npm package you like.
- *   - You may use AI assistants (Copilot, ChatGPT, Claude, etc.).
- *   - We care about *how* you use AI, not *whether* you use it.
- *   - Talk through your decisions as you go.
- *
- * GOOD LUCK!
- */
+import { useState } from 'react'
+import { useProducts } from './hooks/useProducts'
+import ProductCard from './components/ProductCard'
+import Filters from './components/Filters'
+import ProductDetail from './components/ProductDetail'
+import { Product } from './types/product'
 
 function App() {
-  // 👋 Start here — the product data is already imported above.
-  console.log(`Loaded ${products.length} products`)
+  const [search, setSearch] = useState('')
+  const [category, setCategory] = useState('all')
+  const [sortBy, setSortBy] = useState('none')
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [favorites, setFavorites] = useState<number[]>([])
+  const [inStockOnly, setInStockOnly] = useState(false)
+
+  const { products, total, loading, error } = useProducts(search, category)
+
+  const sortedProducts = products.sort((a, b) => {
+    if (sortBy === 'price-asc') return a.price - b.price
+    if (sortBy === 'price-desc') return b.price - a.price
+    if (sortBy === 'rating') return b.rating - a.rating
+    return 0
+  })
+
+  const displayedProducts = inStockOnly
+    ? sortedProducts.filter((p) => p.stock > 0)
+    : sortedProducts
+
+  const handleToggleFavorite = (id: number) => {
+    if (favorites.includes(id)) {
+      setFavorites(favorites.filter((f) => f !== id))
+    } else {
+      setFavorites([...favorites, id])
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <header className="max-w-6xl mx-auto mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Product Dashboard</h1>
-        <p className="text-gray-500 mt-1">
-          {products.length} products — build the UI below
-        </p>
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b border-gray-200 px-8 py-5">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Product Dashboard</h1>
+            <p className="text-gray-500 text-sm mt-0.5">{total} products</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={inStockOnly}
+                onChange={(e) => setInStockOnly(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              In stock only
+            </label>
+            <span className="text-sm text-gray-400">
+              ♥ {favorites.length} favorites
+            </span>
+          </div>
+        </div>
       </header>
 
-      <main className="max-w-6xl mx-auto">
-        {/* TODO: Build your solution here */}
-        <div className="rounded-lg border-2 border-dashed border-gray-300 p-12 text-center text-gray-400">
-          <p className="text-lg">Your product grid goes here.</p>
-          <p className="text-sm mt-2">
-            See the comment block at the top of this file for the full brief.
-          </p>
+      <main className="max-w-7xl mx-auto px-8 py-6">
+        <Filters
+          search={search}
+          onSearchChange={setSearch}
+          category={category}
+          onCategoryChange={setCategory}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+        />
+
+        {error && (
+          <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg mb-4">
+            {error}
+          </div>
+        )}
+
+        {loading && (
+          <div className="text-center py-12 text-gray-400">Loading...</div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {displayedProducts.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              onSelect={setSelectedProduct}
+              selectedId={selectedProduct?.id ?? null}
+              favorites={favorites}
+              onToggleFavorite={handleToggleFavorite}
+            />
+          ))}
         </div>
       </main>
+
+      <ProductDetail
+        product={selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+      />
     </div>
   )
 }
